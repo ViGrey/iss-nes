@@ -1,0 +1,1 @@
+SUBSYSTEM=="tty", ATTRS{idVendor}=="0b07", ATTRS{idProduct}=="07a5", ATTRS{serial}=="0000:00:1a.0", MODE="0666"

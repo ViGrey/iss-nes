@@ -96,12 +96,12 @@ Sprite0HitWait:
     sta PPU_CTRL
     lda xscroll
     sta PPU_SCROLL
-
 NMIDone:
   jsr Update
   rti
 
 Update:
+  jsr SetController1ToController1LastFrame
   lda lua
   beq UpdateNotLua
     jsr PollControllerFinished

@@ -25,79 +25,49 @@
 
 ; Controller1 to Top Bar Data Protocol
 ;
-; 0
-; HHDD|dddd
-; ---------
-; |||| ||||
-; |||| ++++- Day Ones Digit
-; ||++------ Day Tens Digit
-; ++-------- Hour Tens Digit
-; 
-; 1
-; YYYY|yyyy
-; ---------
-; |||| ||||
-; |||| ++++- Year Hundreds Digit
-; ++++------ Year Thousands Digit
+; Bit 76543210  First Byte ($0500)
+;     ||||++++- Day Ones Digit
+;     ||++----- Day Tens Digit
+;     ++------- Hour Tens Digit
 ;
-; 2
-; YYYY|yyyy
-; ---------
-; |||| ||||
-; |||| ++++- Year Ones Digit
-; ++++------ Year Tens Digit
+; Bit 76543210  Second Byte ($0501)
+;     ||||++++- Year Hundreds Digit
+;     ++++----- Year Thousands Digit
 ;
-; 3
-; hhhh|MMMM
-; ---------
-; |||| ||||
-; |||| ++++- Month Offset Minus 1
-; ++++------ Hour Ones Digit
+; Bit 76543210  Third Byte ($0502)
+;     ||||++++- Year Ones Digit
+;     ++++----- Year Tens Digit
 ;
-; 4
-; NTTT|tttt
-; ---------
-; |||| ||||
-; |||| ++++- Latitude Ones Place
-; |+++------ Latitude Tens Place
-; +--------- Longitude Hundreds Digit
+; Bit 76543210  Fourth Byte ($0503)
+;     ||||++++- Month Offset Minus 1
+;     ++++----- Hour Ones Digit
 ;
-; 5
-; TTTT|tttt
-; ---------
-; |||| ||||
-; |||| ++++- Latitude Hundredths Place
-; ++++------ Latitude Tenths Place
+; Bit 76543210  Fifth Byte ($0504)
+;     ||||++++- Latitude Ones Digit
+;     |+++----- Latitude Tens Digit
+;     +-------- Longitude Hundreds Digit
 ;
-; 6
-; NNNN|nnnn
-; ---------
-; |||| ||||
-; |||| ++++- Longitude Ones Place
-; ++++------ Longitude Tens Place
+; Bit 76543210  Sixth Byte ($0505)
+;     ||||++++- Latitude Hundredths Place
+;     ++++----- Latitude Tenths Place
 ;
-; 7
-; NNNN|nnnn
-; ---------
-; |||| ||||
-; |||| ++++- Longitude Hundredths Place
-; ++++------ Longitude Tenths Place
-
-; 8
-; TSSS|ssss
-; ---------
-; |||| ||||
-; |||| ++++- Second Ones Digit
-; |+++------ Second Tens Digit
-; +--------- Latitude Hemisphere
+; Bit 76543210  Seventh Byte ($0506)
+;     ||||++++- Longitude Ones Digit
+;     ++++----- Longitude Tens Digit
 ;
-; 9
-; NMMM|mmmm
-; ---------
-; |||| ||||
-; |||| ++++- Minute Ones Digit
-; |+++------ Minute Tens Digit
-; +--------- Longitude Hemisphere
+; Bit 76543210  Eighth Byte ($0507)
+;     ||||++++- Longitude Hundredths Place
+;     ++++----- Longitude Tenths Place
+;
+; Bit 76543210  Ninth Byte ($0508)
+;     ||||++++- Second Ones Digit
+;     |+++----- Second Tens Digit
+;     +-------- Latitude Hemisphere (0=North/1=South)
+;
+; Bit 76543210  Tenth Byte ($0509)
+;     ||||++++- Minute Ones Digit
+;     |+++----- Minute Tens Digit
+;     +-------- Longitude Hemisphere (0=East/1=West)
 
 SetDefaultDate:
   lda #$01
@@ -111,7 +81,6 @@ SetDefaultDate:
 PollControllerSync:
   lda #$00
   sta controllervalid
-  jsr SetDefaultDate
   ldx #$06
   ldy #$08
 PollControllerSyncLatch:
@@ -121,7 +90,7 @@ PollControllerSyncLatch:
   sta CONTROLLER1
 PollControllerSyncLoop:
   lda CONTROLLER1
-  lsr A
+  lsr
   ror controllersync
   dey
   bne PollControllerSyncLoop
@@ -130,6 +99,7 @@ PollControllerSyncLoop:
     beq PollControllerSyncLoopIsFF
       cpx #$06
       beq PollControllerSyncContinue
+        ; FE sync pulse is required at least once per frame
         lda #$01
         sta controllervalid
         jmp PollControllerSyncContinue
@@ -139,8 +109,14 @@ PollControllerSyncLoopIsFF:
   bne PollControllerSyncLatch
 PollControllerSyncContinue:
   lda controllervalid
-  beq PollControllerSyncDone
-    jsr PollController
+  beq PollControllerSyncInvalid
+    lda controllersync
+    sta controller1
+    ldx #$01
+    ldy #$08
+    jmp PollControllerLatch
+PollControllerSyncInvalid:
+  jsr SetController1LastFrameToController1
 PollControllerSyncDone:
   jsr PollControllerFinished
   rts
@@ -155,15 +131,14 @@ PollControllerLatch:
   sta CONTROLLER1
 PollController1Loop:
   lda CONTROLLER1
-  lsr A
-  rol controller1, x
+  lsr
+  rol controller1, X
   dey
   bne PollController1Loop
     ldy #$08
     inx
     cpx #$0A
     bne PollControllerLatch
-      rts
 PollControllerFinished:
   jsr GetDate
   jsr GetTime
@@ -645,3 +620,23 @@ LongitudeToXScrollContinue:
     sta nametable
 LongitudeToXScrollDone:
   rts
+
+SetController1ToController1LastFrame:
+  ldy #$00
+SetController1ToController1LastFrameLoop:
+  lda (controller1), Y
+  sta (controller1LastFrame), Y
+  iny
+  cpy #$0A
+  bcc SetController1ToController1LastFrameLoop
+    rts
+
+SetController1LastFrameToController1:
+  ldy #$00
+SetController1LastFrameToController1Loop:
+  lda (controller1LastFrame), Y
+  sta (controller1), Y
+  iny
+  cpy #$0A
+  bcc SetController1LastFrameToController1Loop
+    rts

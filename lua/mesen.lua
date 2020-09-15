@@ -1,4 +1,4 @@
--- Copyright (C) 2020, Vi Grey
+﻿-- Copyright (C) 2020, Vi Grey
 -- All rights reserved.
 --
 -- Redistribution and use in source and binary forms, with or without
@@ -25,20 +25,64 @@
 
 local socket = require 'socket.core'
 
-local HOST = 'localhost'
+local HOST = "vigrey.com"
 local PORT = 56502
+local partial = ""
+local second = 0
+local tcpCheckLastTimestamp = 0
 
-function handleFrame()
-    emu.write(0, 1, emu.memType.cpu)
-    local tcp = assert(socket.tcp())
-    tcp:settimeout(1)
-    tcp:connect(HOST, PORT)
-    local s, status, partial = tcp:receive(tcpResLen)
-    tcp:close()
-    for i = 10,1,-1
-    do
-      emu.write(1280+i-1, string.byte(partial, i), emu.memType.cpu)
-    end
+-- TCP request to HOST:PORT for ISS Data
+function getISSData()
+	local tcp = assert(socket.tcp())
+	tcp:settimeout(5)
+	tcp:connect(HOST, PORT)
+	local s, status, partial = tcp:receive()
+	tcp:close()
+	return partial
 end
 
+-- Write all 0s to the 10 input memory bytes and then wait 5 seconds
+function writeBlankFrame()
+	for i = 10,1,-1
+	do
+		emu.write(1280+i-1, 0, emu.memType.cpu)
+	end
+	socket.sleep(5)
+  tcpCheckLastTimestamp = 0
+  second = 0
+end
+
+-- Write minute worth of ISS tracking data to input memory bytes
+function writeSecondData(partial)
+	local timestamp = os.time(os.date("!*t"))
+	local timestampLast = os.time(os.date("!*t"))
+	for i = 10,1,-1
+	do
+		emu.write(1280+i-1, string.byte(partial, (second-1)*10+i), emu.memType.cpu)
+	end
+	while timestamp == timestampLast do
+		timestamp = os.time(os.date("!*t"))
+		socket.sleep(0.1)
+	end
+	timestampLast = timestamp
+end
+
+-- Run at beginning of frame
+function handleFrame()
+ 	emu.write(0, 1, emu.memType.cpu)
+  second = second + 1
+	local timestampNow = os.time(os.date("!*t"))
+  if timestampNow - tcpCheckLastTimestamp > 59 then
+    tcpCheckLastTimestamp = timestampNow
+		partial = getISSData()
+    second = 1
+	end
+	if string.len(partial) > 600 then
+		writeSecondData(partial)
+	else
+		writeBlankFrame()
+	end
+end
+
+-- Per frame data
 emu.addEventCallback(handleFrame, emu.eventType.startFrame)

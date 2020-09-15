@@ -30,6 +30,3 @@ all:
 	mkdir -p $(CURRENTDIR)bin; \
 	cd $(CURRENTDIR)src; \
 	asm $(PKG_NAME).asm ../bin/$(PKG_NAME).nes; \
-
-clean:
-	rm -rf -- $(CURRENTDIR)bin; \

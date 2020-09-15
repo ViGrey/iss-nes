@@ -63,6 +63,7 @@ TopBarVariables:
 
 .enum $0500
   controller1           dsb 10
+  controller1LastFrame  dsb 10
   controllersync        dsb 1
   controllervalid       dsb 1
 .ende

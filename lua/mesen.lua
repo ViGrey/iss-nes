@@ -30,6 +30,7 @@ local PORT = 56502
 local partial = ""
 local second = 0
 local tcpCheckLastTimestamp = 0
+local dataLastTimestamp = 0
 
 -- TCP request to HOST:PORT for ISS Data
 function getISSData()
@@ -49,10 +50,9 @@ function writeBlankFrame()
 	end
 	socket.sleep(5)
   tcpCheckLastTimestamp = 0
-  second = 0
 end
 
--- Write minute worth of ISS tracking data to input memory bytes
+-- Write second worth of ISS tracking data to input memory bytes
 function writeSecondData(partial)
 	local timestamp = os.time(os.date("!*t"))
 	local timestampLast = os.time(os.date("!*t"))
@@ -64,7 +64,7 @@ function writeSecondData(partial)
 		timestamp = os.time(os.date("!*t"))
 		socket.sleep(0.1)
 	end
-	timestampLast = timestamp
+  dataLastTimestamp = timestamp
 end
 
 -- Run at beginning of frame
@@ -72,10 +72,11 @@ function handleFrame()
  	emu.write(0, 1, emu.memType.cpu)
   second = second + 1
 	local timestampNow = os.time(os.date("!*t"))
-  if timestampNow - tcpCheckLastTimestamp > 59 then
+  if (timestampNow - dataLastTimestamp > 10) or
+    (timestampNow - tcpCheckLastTimestamp > 59) then
     tcpCheckLastTimestamp = timestampNow
 		partial = getISSData()
-    second = 1
+    second = 3
 	end
 	if string.len(partial) > 600 then
 		writeSecondData(partial)

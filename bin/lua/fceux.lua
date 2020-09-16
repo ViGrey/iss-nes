@@ -6,10 +6,10 @@
 -- are met:
 --
 -- 1. Redistributions of source code must retain the above copyright
---    notice, this list of conditions and the following disclaimer.
+--		notice, this list of conditions and the following disclaimer.
 -- 2. Redistributions in binary form must reproduce the above copyright
---    notice, this list of conditions and the following disclaimer in the
---    documentation and/or other materials provided with the distribution.
+--		notice, this list of conditions and the following disclaimer in the
+--		documentation and/or other materials provided with the distribution.
 --
 -- THIS SOFTWARE IS PROVIDED BY AUTHOR AND CONTRIBUTORS ``AS IS'' AND
 -- ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
@@ -49,7 +49,7 @@ function writeBlankFrame()
 		memory.writebyte(1280+i-1, 0)
 	end
 	socket.sleep(5)
-  tcpCheckLastTimestamp = 0
+	tcpCheckLastTimestamp = 0
 end
 
 -- Write second worth of ISS tracking data to input memory bytes
@@ -64,20 +64,20 @@ function writeSecondData(partial)
 		timestamp = os.time(os.date("!*t"))
 		socket.sleep(0.1)
 	end
-  dataLastTimestamp = timestamp
+	dataLastTimestamp = timestamp
 end
 
 -- Run at beginning of frame
 function handleFrame()
 	memory.writebyte(0, 1)
-  second = second + 1
+	second = second + 1
 	local timestampNow = os.time(os.date("!*t"))
-  if (timestampNow - dataLastTimestamp > 10) or
-    (timestampNow - tcpCheckLastTimestamp > 59) then
-    tcpCheckLastTimestamp = timestampNow
+	if (timestampNow - dataLastTimestamp > 10) or
+		(timestampNow - tcpCheckLastTimestamp > 59) then
+		tcpCheckLastTimestamp = timestampNow
 		partial = getISSData()
-    second = 3
-  end
+		second = 3
+	end
 	if string.len(partial) > 600 then
 		writeSecondData(partial)
 	else

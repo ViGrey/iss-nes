@@ -91,7 +91,7 @@ PollControllerSyncLatch:
 PollControllerSyncLoop:
   lda CONTROLLER1
   lsr
-  ror controllersync
+  rol controllersync
   dey
   bne PollControllerSyncLoop
     lda controllersync
@@ -99,7 +99,7 @@ PollControllerSyncLoop:
     beq PollControllerSyncLoopIsFF
       cpx #$06
       beq PollControllerSyncContinue
-        ; FE sync pulse is required at least once per frame
+        ; FF sync pulse is required at least once per frame
         lda #$01
         sta controllervalid
         jmp PollControllerSyncContinue
